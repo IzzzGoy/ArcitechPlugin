@@ -25,175 +25,13 @@ import com.ndmatrix.plugin.models.ProjectionSource
 import com.ndmatrix.plugin.models.ProjectionSourceType
 import kotlin.coroutines.CoroutineContext
 
-class ParametersGenerator {
+class Generator {
+    private val parameterGenerator = ParameterGenerator()
     fun generate(config: ConfigSchema, packageName: String): List<FileSpec> {
 
         println(buildEventChains(config))
         println(extractOrderedEvents(config))
-        return config.parameters.map { (classname, definition) ->
-
-            val intentsType = TypeSpec.interfaceBuilder(
-                "${classname}Intents"
-            )
-                .addModifiers(KModifier.SEALED)
-                .addSuperinterface(Message.Intent::class)
-                .addTypes(
-                    definition.intents.map {
-                        if (it.value.args == null) {
-                            TypeSpec.objectBuilder(it.key)
-                        } else {
-                            TypeSpec.classBuilder(it.key)
-                                .primaryConstructor(
-                                    FunSpec.constructorBuilder()
-                                        .also { build ->
-                                            it.value.args?.forEach { (paramName, def) ->
-                                                build.addParameter(
-                                                    ParameterSpec.builder(
-                                                        paramName,
-                                                        castType(def.type)
-                                                    )
-                                                        .build()
-                                                )
-                                            }
-                                        }
-                                        .build()
-                                )
-                                .addProperties(
-                                    it.value.args?.map { (paramName, def) ->
-                                        PropertySpec.builder(paramName, castType(def.type))
-                                            .initializer(paramName)
-                                            .build()
-                                    } ?: emptyList()
-                                )
-                        }
-                            .addModifiers(KModifier.DATA)
-                            .addSuperinterface(ClassName(packageName, "${classname}Intents"))
-                            .build()
-                    }
-                )
-                .build()
-
-            FileSpec.builder(packageName, classname)
-                .addType(intentsType)
-                .addType(
-                    TypeSpec.classBuilder("${classname}ParameterHolder")
-                        .addSuperclassConstructorParameter(
-                            if (definition.type == "string") {
-                                "\"${definition.initial}\""
-                            } else {
-                                definition.initial
-                            }
-                        )
-                        .addModifiers(KModifier.ABSTRACT)
-                        .superclass(
-                            ParameterHolder::class.asTypeName().parameterizedBy(
-                                ClassName(packageName, "${classname}Intents"),
-                                castType(definition.type).asTypeName(),
-                            )
-                        ).addFunctions(
-                            definition.intents.keys.map { intentName ->
-                                FunSpec.builder("handle$intentName")
-                                    .addModifiers(KModifier.ABSTRACT, KModifier.PROTECTED)
-                                    .returns(castType(definition.type))
-                                    .addParameter(
-                                        ParameterSpec
-                                            .builder(
-                                                "intent",
-                                                ClassName(
-                                                    packageName,
-                                                    "${classname}Intents.$intentName"
-                                                )
-                                            )
-                                            .build()
-                                    )
-                                    .addParameter(
-                                        "state", castType(definition.type)
-                                    )
-                                    .build()
-                            }
-                        )
-                        .addProperty(
-                            PropertySpec.builder(
-                                "_postMetadata",
-                                MutableSharedFlow::class.asTypeName()
-                                    .parameterizedBy(
-                                        PostExecMetadata::class.asTypeName()
-                                            .parameterizedBy(
-                                                ClassName(packageName, "${classname}Intents")
-                                            )
-                                    )
-                            )
-                                .initializer("MutableSharedFlow()")
-                                .build()
-                        )
-                        .addProperty(
-                            PropertySpec.builder(
-                                "postMetadata",
-                                Flow::class.asTypeName()
-                                    .parameterizedBy(
-                                        PostExecMetadata::class.asTypeName()
-                                            .parameterizedBy(
-                                                ClassName(packageName, "${classname}Intents")
-                                            )
-                                    )
-                            ).addModifiers(KModifier.OVERRIDE)
-                                .initializer("_postMetadata")
-                                .build()
-                        )
-                        .addFunction(
-                            FunSpec.builder("handle")
-                                .addModifiers(KModifier.OVERRIDE, KModifier.SUSPEND)
-                                .addParameter(
-                                    ParameterSpec.builder(
-                                        "e",
-                                        ClassName(packageName, "${classname}Intents")
-                                    )
-                                        .build()
-                                )
-                                .beginControlFlow("when(e)")
-                                .addCode(
-                                    definition.intents.map { (intent, name) ->
-                                        "is ${classname}Intents.$intent -> update(handle${intent}(e, value))"
-                                    }.joinToString(separator = "\n")
-                                )
-                                .endControlFlow()
-                                .build()
-
-                        )
-                        .addFunction(
-                            FunSpec.builder("process")
-                                .addModifiers(KModifier.SUSPEND, KModifier.OVERRIDE)
-                                .addParameter(
-                                    ParameterSpec.builder("e", Message::class)
-                                        .build()
-                                )
-                                .addCode(
-                                    CodeBlock.builder()
-                                        .beginControlFlow("if (e is ${classname}Intents)")
-                                        .addStatement(
-                                            "%M {",
-                                            MemberName("kotlin.time", "measureTime")
-                                        )
-                                        .indent()
-                                        .addStatement("handle(e)")
-                                        .unindent()
-                                        .addStatement("}.also {")
-                                        .indent()
-                                        .addStatement(
-                                            "_postMetadata.emit(PostExecMetadata(e, it))",
-                                        )
-                                        .unindent()
-                                        .addStatement("}")
-                                        .endControlFlow()
-                                        .build()
-                                )
-
-                                .build()
-                        )
-                        .build()
-                )
-                .build()
-        } + generateProjections(
+        return parameterGenerator.generate(config, packageName) + generateProjections(
             config,
             packageName
         ) + config.events.map { (eventName, definition) ->
@@ -397,7 +235,7 @@ class ParametersGenerator {
                                         it.name,
                                         extractModelClass(it, config, packageName)
                                     ).defaultValue(
-                                        extractDefaultValue(it, config)
+                                        extractDefaultValue(it, config) ?: ""
                                     ).build()
                                 }
                             )

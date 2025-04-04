@@ -1,15 +1,13 @@
 package com.ndmatrix.plugin
 
-import com.ndmatrix.plugin.generator.ParametersGenerator
+import com.ndmatrix.plugin.generator.Generator
 import com.ndmatrix.plugin.models.ConfigSchema
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.internal.project.DefaultProject
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
@@ -17,8 +15,6 @@ import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
-import kotlin.io.path.div
-import kotlin.io.path.exists
 
 
 abstract class GenerateExtension {
@@ -62,7 +58,7 @@ abstract class GenerateTask : DefaultTask() {
         val decodedSchema = Json.decodeFromStream<ConfigSchema>(configSchema.inputStream())
         val outputDir = generatedOutputDir.get().asFile.toPath()
 
-        ParametersGenerator().generate(decodedSchema, packageName.get()).forEach {
+        Generator().generate(decodedSchema, packageName.get()).forEach {
             it.writeTo(outputDir)
         }
     }

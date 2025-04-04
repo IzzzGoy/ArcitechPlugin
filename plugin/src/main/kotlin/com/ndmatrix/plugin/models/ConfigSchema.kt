@@ -13,7 +13,7 @@ data class ConfigSchema(
 @Serializable
 data class ParametersDefinition(
     val type: String,
-    val initial: String,
+    val initial: String?,
     val intents: Map<String, IntentsDefinition>,
 )
 
