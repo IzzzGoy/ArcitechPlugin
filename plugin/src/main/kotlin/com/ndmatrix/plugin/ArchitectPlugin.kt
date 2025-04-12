@@ -1,16 +1,24 @@
 package com.ndmatrix.plugin
 
-import com.ndmatrix.plugin.generator.Generator
+import com.ndmatrix.plugin.generator.GeneratorCommon
+import com.ndmatrix.plugin.generator.ProjectionGenerator
+import com.ndmatrix.plugin.generator.TypesGenerator
 import com.ndmatrix.plugin.models.ConfigSchema
+import com.ndmatrix.plugin.validator.SimpleValidator
+import groovy.transform.Internal
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.LocalState
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
@@ -39,6 +47,7 @@ class ArchitectPlugin : Plugin<Project> {
 }
 
 abstract class GenerateTask : DefaultTask() {
+
     @get:Input
     abstract val packageName: Property<String>
 
@@ -49,17 +58,26 @@ abstract class GenerateTask : DefaultTask() {
     @get:OutputDirectory
     abstract val generatedOutputDir: DirectoryProperty
 
+    @OptIn(ExperimentalSerializationApi::class)
     @TaskAction
     fun generateFiles() {
         val configFolder = configDirectory.get().asFile
-        val configSchema = configFolder.listFiles()?.firstOrNull { it.extension == "json" }
-            ?: return
+        configFolder.listFiles()?.filter { it.extension == "json" }
+            ?.onEach { configSchema ->
+                logger.lifecycle("process: -> ${configSchema.name}")
 
-        val decodedSchema = Json.decodeFromStream<ConfigSchema>(configSchema.inputStream())
-        val outputDir = generatedOutputDir.get().asFile.toPath()
+                val decodedSchema = Json.decodeFromStream<ConfigSchema>(configSchema.inputStream())
+                val outputDir = generatedOutputDir.get().asFile.toPath()
 
-        Generator().generate(decodedSchema, packageName.get()).forEach {
-            it.writeTo(outputDir)
-        }
+                GeneratorCommon().generate(decodedSchema, packageName.get() + ".${configSchema.name.lowercase()}").forEach {
+                    it.writeTo(outputDir)
+                }
+                TypesGenerator().generate(decodedSchema, packageName.get() + ".${configSchema.name.lowercase()}").forEach {
+                    it.writeTo(outputDir)
+                }
+                ProjectionGenerator().generate(decodedSchema, packageName.get() + ".${configSchema.name.lowercase()}").forEach {
+                    it.writeTo(outputDir)
+                }
+            }
     }
 }

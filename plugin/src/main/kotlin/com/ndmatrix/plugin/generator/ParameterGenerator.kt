@@ -18,10 +18,10 @@ import com.squareup.kotlinpoet.asTypeName
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
-class ParameterGenerator {
+class ParameterGenerator : Generator {
 
-    fun generate(config: ConfigSchema, packageName: String) =
-        config.parameters.map { (classname, definition) ->
+    override fun generate(configSchema: ConfigSchema, packageName: String) =
+        configSchema.parameters.map { (classname, definition) ->
 
             val intentsType = TypeSpec.interfaceBuilder(
                 "${classname}Intents"
@@ -81,7 +81,7 @@ class ParameterGenerator {
                         .superclass(
                             ParameterHolder::class.asTypeName().parameterizedBy(
                                 ClassName(packageName, "${classname}Intents"),
-                                castType(definition.type).asTypeName(),
+                                castType(definition.type),
                             )
                         ).also {
                             if (definition.initial == null) {

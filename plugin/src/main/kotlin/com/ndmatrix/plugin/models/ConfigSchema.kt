@@ -4,10 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ConfigSchema(
-    val parameters: Map<String, ParametersDefinition>,
-    val projection: Map<String, List<ProjectionSource>>,
-    val events: Map<String, EventDefinition>,
-    val general: List<String>
+    val parameters: Map<String, ParametersDefinition> = emptyMap(),
+    val projection: List<ProjectionDefinition> = emptyList(),
+    val events: Map<String, EventDefinition> = emptyMap(),
+    val general: List<String> = emptyList(),
+    val types: List<TypeDefinition> = emptyList()
 )
 
 @Serializable
@@ -25,6 +26,14 @@ data class IntentsDefinition(
 @Serializable
 data class ArgDefinition(
     val type: String,
+)
+
+@Serializable
+data class ProjectionDefinition(
+    val name: String,
+    val type: String,
+    val initial: String? = null,
+    val sources: List<ProjectionSource>
 )
 
 @Serializable
