@@ -1,9 +1,9 @@
-package com.ndmatrix.plugin.generator
+package io.github.izzzgoy.plugin.generator
 
 import com.ndmatrix.parameter.Message
 import com.ndmatrix.parameter.ParameterHolder
 import com.ndmatrix.parameter.PostExecMetadata
-import com.ndmatrix.plugin.models.ConfigSchema
+import io.github.izzzgoy.plugin.models.ConfigSchema
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec

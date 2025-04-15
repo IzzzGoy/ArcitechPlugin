@@ -1,4 +1,4 @@
-package com.ndmatrix.plugin.models
+package io.github.izzzgoy.plugin.models
 
 import kotlinx.serialization.Serializable
 

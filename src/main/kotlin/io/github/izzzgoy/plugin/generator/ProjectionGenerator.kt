@@ -1,9 +1,8 @@
-package com.ndmatrix.plugin.generator
+package io.github.izzzgoy.plugin.generator
 
 import com.ndmatrix.parameter.Projection
-import com.ndmatrix.plugin.models.ConfigSchema
-import com.ndmatrix.plugin.models.ProjectionSource
-import com.ndmatrix.plugin.models.ProjectionSourceType
+import io.github.izzzgoy.plugin.models.ConfigSchema
+import io.github.izzzgoy.plugin.models.ProjectionSourceType
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
@@ -80,30 +79,50 @@ class ProjectionGenerator : Generator {
                                 .addModifiers(KModifier.OVERRIDE)
                                 .initializer(
                                     CodeBlock.builder()
-                                        .addStatement(
-                                            "%M(",
-                                            MemberName("kotlinx.coroutines.flow", "combine")
-                                        )
-                                        .indent()
-                                        .addStatement(
-                                            projection.sources.joinToString(", ") {
-                                                "${
-                                                    it.name.replaceFirstChar {
-                                                        it.lowercase(
-                                                            Locale.getDefault()
-                                                        )
-                                                    }
-                                                }.flow"
+                                        .also {
+                                            if (projection.sources.size == 1) {
+                                                val source = projection.sources.first()
+                                                it.addStatement(
+                                                    "${
+                                                        source.name.replaceFirstChar {
+                                                            it.lowercase(
+                                                                Locale.getDefault()
+                                                            )
+                                                        }
+                                                    }.flow"
+                                                ).addStatement(
+                                                    ".%M { t0 ->",
+                                                    MemberName("kotlinx.coroutines.flow", "map")
+                                                )
+                                            } else {
+                                                it.addStatement(
+                                                    "%M(",
+                                                    MemberName("kotlinx.coroutines.flow", "combine")
+                                                )
+                                                    .indent()
+                                                    .addStatement(
+                                                        projection.sources.joinToString(", ") {
+                                                            "${
+                                                                it.name.replaceFirstChar {
+                                                                    it.lowercase(
+                                                                        Locale.getDefault()
+                                                                    )
+                                                                }
+                                                            }.flow"
+                                                        }
+                                                    )
+                                                    .unindent()
+                                                    .addStatement(
+                                                        ") { ${
+                                                            projection.sources.indices.joinToString(
+                                                                separator = ", "
+                                                            ) { "t$it" }
+                                                        } ->"
+                                                    )
                                             }
-                                        )
-                                        .unindent()
-                                        .addStatement(
-                                            ") { ${
-                                                projection.sources.indices.joinToString(
-                                                    separator = ", "
-                                                ) { "t$it" }
-                                            } ->"
-                                        )
+                                        }
+
+
                                         .indent()
                                         .addStatement(
                                             "project(${

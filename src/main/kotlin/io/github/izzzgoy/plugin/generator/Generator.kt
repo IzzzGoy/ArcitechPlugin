@@ -1,6 +1,6 @@
-package com.ndmatrix.plugin.generator
+package io.github.izzzgoy.plugin.generator
 
-import com.ndmatrix.plugin.models.ConfigSchema
+import io.github.izzzgoy.plugin.models.ConfigSchema
 import com.squareup.kotlinpoet.FileSpec
 
 interface Generator {

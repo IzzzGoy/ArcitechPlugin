@@ -1,11 +1,9 @@
-package com.ndmatrix.plugin
+package io.github.izzzgoy.plugin
 
-import com.ndmatrix.plugin.generator.GeneratorCommon
-import com.ndmatrix.plugin.generator.ProjectionGenerator
-import com.ndmatrix.plugin.generator.TypesGenerator
-import com.ndmatrix.plugin.models.ConfigSchema
-import com.ndmatrix.plugin.validator.SimpleValidator
-import groovy.transform.Internal
+import io.github.izzzgoy.plugin.generator.GeneratorCommon
+import io.github.izzzgoy.plugin.generator.ProjectionGenerator
+import io.github.izzzgoy.plugin.generator.TypesGenerator
+import io.github.izzzgoy.plugin.models.ConfigSchema
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
@@ -13,12 +11,9 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.logging.Logger
-import org.gradle.api.logging.Logging
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
-import org.gradle.api.tasks.LocalState
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity

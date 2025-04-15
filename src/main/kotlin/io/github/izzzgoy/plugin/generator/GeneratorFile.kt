@@ -1,14 +1,13 @@
-package com.ndmatrix.plugin.generator
+package io.github.izzzgoy.plugin.generator
 
 import com.ndmatrix.parameter.AbstractEventHandler
 import com.ndmatrix.parameter.EventChain
 import com.ndmatrix.parameter.Message
 import com.ndmatrix.parameter.PostExecMetadata
-import com.ndmatrix.parameter.Projection
-import com.ndmatrix.plugin.models.ConfigSchema
-import com.ndmatrix.plugin.models.EventDefinition
-import com.ndmatrix.plugin.models.ProjectionSource
-import com.ndmatrix.plugin.models.ProjectionSourceType
+import io.github.izzzgoy.plugin.models.ConfigSchema
+import io.github.izzzgoy.plugin.models.EventDefinition
+import io.github.izzzgoy.plugin.models.ProjectionSource
+import io.github.izzzgoy.plugin.models.ProjectionSourceType
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
@@ -23,10 +22,7 @@ import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.coroutineContext
-import kotlin.io.path.fileVisitor
 
 class GeneratorCommon {
     private val parameterGenerator = ParameterGenerator()
