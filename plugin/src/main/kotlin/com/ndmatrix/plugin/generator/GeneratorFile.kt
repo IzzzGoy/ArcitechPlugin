@@ -6,6 +6,7 @@ import com.ndmatrix.parameter.Message
 import com.ndmatrix.parameter.PostExecMetadata
 import com.ndmatrix.parameter.Projection
 import com.ndmatrix.plugin.models.ConfigSchema
+import com.ndmatrix.plugin.models.EventDefinition
 import com.ndmatrix.plugin.models.ProjectionSource
 import com.ndmatrix.plugin.models.ProjectionSourceType
 import com.squareup.kotlinpoet.ClassName
@@ -24,6 +25,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
+import kotlin.io.path.fileVisitor
 
 class GeneratorCommon {
     private val parameterGenerator = ParameterGenerator()
@@ -31,6 +34,7 @@ class GeneratorCommon {
 
         println(buildEventChains(config))
         println(extractOrderedEvents(config))
+        println(calculateTree(config.general, config.events))
         return parameterGenerator.generate(config, packageName) + config.events.map { (eventName, definition) ->
             FileSpec.builder(
                 packageName, "Event$eventName"
@@ -119,6 +123,7 @@ class GeneratorCommon {
                         .addSuperclassConstructorParameter("coroutineContext")
                         .addFunction(
                             FunSpec.builder("process")
+                                .addAnnotation(ClassName("kotlin.uuid", "ExperimentalUuidApi"))
                                 .addModifiers(KModifier.SUSPEND, KModifier.OVERRIDE)
                                 .addParameter(
                                     ParameterSpec.builder("e", Message::class)
@@ -137,7 +142,23 @@ class GeneratorCommon {
                                         .addStatement("}.also {")
                                         .indent()
                                         .addStatement(
-                                            "_postMetadata.emit(PostExecMetadata(e, it))",
+                                            "_postMetadata.emit(PostExecMetadata(e, it, %M[%M.CallMetadataKey]!!.parentId, %M[%M.CallMetadataKey]!!.currentId))",
+                                            MemberName(
+                                                "kotlin.coroutines",
+                                                "coroutineContext"
+                                            ),
+                                            MemberName(
+                                                "com.ndmatrix.parameter",
+                                                "CallMetadata"
+                                            ),
+                                            MemberName(
+                                                "kotlin.coroutines",
+                                                "coroutineContext"
+                                            ),
+                                            MemberName(
+                                                "com.ndmatrix.parameter",
+                                                "CallMetadata"
+                                            ),
                                         )
                                         .unindent()
                                         .addStatement("}")
@@ -149,7 +170,7 @@ class GeneratorCommon {
                         .build()
                 )
                 .build()
-        } + extractOrderedEvents(config).map { (it, chain) ->
+        } + calculateTree(config.general, config.events).map { (it, chain) ->
             FileSpec.builder(packageName, "${it}Chain")
                 .addType(
                     TypeSpec.classBuilder("${it}Chain")
@@ -314,4 +335,21 @@ fun extractOrderedEvents(config: ConfigSchema): Map<String, List<String>> {
     }
 
     return orderedEventsMap
+}
+
+fun calculateTree(general: List<String>, events: Map<String, EventDefinition>): Map<String, List<String>> {
+
+    return general.associateWith { root ->
+
+        val aggregator = mutableListOf<String>()
+        fun visit(node: String) {
+            aggregator.add(node)
+            (events[node]?.returns ?: emptyList()).forEach {
+                visit(it.name)
+            }
+        }
+        visit(root)
+        aggregator
+
+    }
 }

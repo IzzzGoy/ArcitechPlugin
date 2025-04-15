@@ -167,6 +167,7 @@ class ParameterGenerator : Generator {
                         )
                         .addFunction(
                             FunSpec.builder("process")
+                                .addAnnotation(ClassName("kotlin.uuid", "ExperimentalUuidApi"))
                                 .addModifiers(KModifier.SUSPEND, KModifier.OVERRIDE)
                                 .addParameter(
                                     ParameterSpec.builder("e", Message::class)
@@ -185,7 +186,23 @@ class ParameterGenerator : Generator {
                                         .addStatement("}.also {")
                                         .indent()
                                         .addStatement(
-                                            "_postMetadata.emit(PostExecMetadata(e, it))",
+                                            "_postMetadata.emit(PostExecMetadata(e, it, %M[%M.CallMetadataKey]!!.parentId, %M[%M.CallMetadataKey]!!.currentId))",
+                                            MemberName(
+                                                "kotlin.coroutines",
+                                                "coroutineContext"
+                                            ),
+                                            MemberName(
+                                                "com.ndmatrix.parameter",
+                                                "CallMetadata"
+                                            ),
+                                            MemberName(
+                                                "kotlin.coroutines",
+                                                "coroutineContext"
+                                            ),
+                                            MemberName(
+                                                "com.ndmatrix.parameter",
+                                                "CallMetadata"
+                                            ),
                                         )
                                         .unindent()
                                         .addStatement("}")
