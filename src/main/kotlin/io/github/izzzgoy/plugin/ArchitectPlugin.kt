@@ -1,6 +1,8 @@
 package io.github.izzzgoy.plugin
 
-import io.github.izzzgoy.plugin.generator.GeneratorCommon
+import io.github.izzzgoy.plugin.generator.EventChainGenerator
+import io.github.izzzgoy.plugin.generator.EventGenerator
+import io.github.izzzgoy.plugin.generator.ParameterGenerator
 import io.github.izzzgoy.plugin.generator.ProjectionGenerator
 import io.github.izzzgoy.plugin.generator.TypesGenerator
 import io.github.izzzgoy.plugin.models.ConfigSchema
@@ -25,6 +27,7 @@ abstract class GenerateExtension {
     abstract val packageName: Property<String>
 }
 
+@Suppress("Unused")
 class ArchitectPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extension = project.extensions.create("architect", GenerateExtension::class.java)
@@ -57,21 +60,22 @@ abstract class GenerateTask : DefaultTask() {
     @TaskAction
     fun generateFiles() {
         val configFolder = configDirectory.get().asFile
+        generatedOutputDir.get().asFile.deleteRecursively()
         configFolder.listFiles()?.filter { it.extension == "json" }
             ?.onEach { configSchema ->
-                logger.lifecycle("process: -> ${configSchema.name}")
 
                 val decodedSchema = Json.decodeFromStream<ConfigSchema>(configSchema.inputStream())
                 val outputDir = generatedOutputDir.get().asFile.toPath()
-
-                GeneratorCommon().generate(decodedSchema, packageName.get() + ".${configSchema.name.lowercase()}").forEach {
-                    it.writeTo(outputDir)
-                }
-                TypesGenerator().generate(decodedSchema, packageName.get() + ".${configSchema.name.lowercase()}").forEach {
-                    it.writeTo(outputDir)
-                }
-                ProjectionGenerator().generate(decodedSchema, packageName.get() + ".${configSchema.name.lowercase()}").forEach {
-                    it.writeTo(outputDir)
+                listOf(
+                    ParameterGenerator(),
+                    TypesGenerator(),
+                    ProjectionGenerator(),
+                    EventGenerator(),
+                    EventChainGenerator(),
+                ).forEach { generator ->
+                    generator.generate(decodedSchema, packageName.get() + ".${configSchema.name.lowercase().removeSuffix(".json")}").forEach {
+                        it.writeTo(outputDir)
+                    }
                 }
             }
     }

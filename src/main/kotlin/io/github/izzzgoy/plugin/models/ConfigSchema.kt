@@ -26,12 +26,15 @@ data class IntentsDefinition(
 @Serializable
 data class ArgDefinition(
     val type: String,
+    val nullable: Boolean = false,
+    val initial: String? = null
 )
 
 @Serializable
 data class ProjectionDefinition(
     val name: String,
     val type: String,
+    val nullable: Boolean = false,
     val initial: String? = null,
     val sources: List<ProjectionSource>
 )

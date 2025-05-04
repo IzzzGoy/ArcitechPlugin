@@ -1,4 +1,6 @@
-import java.util.Properties
+import com.vanniktech.maven.publish.GradlePlugin
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     `kotlin-dsl`
@@ -7,11 +9,11 @@ plugins {
     alias(libs.plugins.serialization)
     alias(libs.plugins.kotlinJvm)
     signing
-    //id("com.gradle.plugin-publish") version "1.3.1"
+    id("com.vanniktech.maven.publish") version "0.30.0"
 }
 
 group = "io.github.izzzgoy.plugin"
-version = "1.0.8"
+version = "1.1.1"
 
 kotlin {
     jvmToolchain(17)
@@ -21,7 +23,7 @@ kotlin {
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
                 implementation("com.squareup:kotlinpoet:2.1.0")
-                implementation("io.github.izzzgoy:ndimmatrix:1.0.2")
+                implementation("io.github.izzzgoy:ndimmatrix:1.0.3")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
                 implementation("net.pwall.json:json-kotlin-schema:0.56")
             }
@@ -52,94 +54,38 @@ gradlePlugin {
     }
 }
 
+mavenPublishing {
+    configure(
+        GradlePlugin(
+            javadocJar = JavadocJar.Javadoc(),
+            sourcesJar = true,
+        )
+    )
 
-val secretPropsFile = project.rootProject.file("local.properties")
-if (secretPropsFile.exists()) {
-    secretPropsFile.reader().use {
-        Properties().apply {
-            load(it)
-        }
-    }.onEach { (name, value) ->
-        ext[name.toString()] = value
-    }
-} else {
-    ext["signing.keyId"] = System.getenv("SIGNING_KEY_ID")
-    ext["signing.password"] = System.getenv("SIGNING_PASSWORD")
-    ext["signing.secretKeyRingFile"] = System.getenv("SIGNING_SECRET_KEY_RING_FILE")
-    ext["ossrhUsername"] = System.getenv("OSSRH_USERNAME")
-    ext["ossrhPassword"] = System.getenv("OSSRH_PASSWORD")
-}
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 
-fun getExtraString(name: String) = ext[name]?.toString()
+    signAllPublications()
+    coordinates(group.toString(), "architect", version.toString())
+    pom {
+        name.set("NDM Achitect")
+        description.set("Architecture component system")
+        url.set("https://github.com/IzzzGoy/Arcitech")
 
-val javadocJar by tasks.registering(Jar::class) {
-    archiveClassifier.set("javadoc")
-}
-
-val sourcesJar by tasks.registering(Jar::class) {
-    archiveClassifier.set("sources")
-    from(sourceSets.main.get().allSource)
-}
-
-publishing {
-    publications {
-
-        withType<MavenPublication> {
-            //groupId = "io.github.izzzgoy"
-            //artifactId = "architect"
-            //version = version
-            artifact(tasks["sourcesJar"])
-            // Добавляем все артефакты
-            artifact(tasks["javadocJar"]) // Если есть
-
-            // Полная конфигурация POM
-            pom {
-                name.set("NDM Architect")
-                description.set("Architecture component system for Kotlin projects")
-                url.set("https://github.com/IzzzGoy/Arcitech")
-
-                licenses {
-                    license {
-                        name.set("MIT License")
-                        url.set("https://opensource.org/licenses/MIT")
-                    }
-                }
-
-                developers {
-                    developer {
-                        id.set("FromGoy")
-                        name.set("Alexey")
-                        email.set("xzadmoror@gmail.com")
-                        organization.set("NDMatrix")
-                        organizationUrl.set("https://github.com/IzzzGoy")
-                    }
-                }
-
-                scm {
-                    connection.set("scm:git:git://github.com/IzzzGoy/Arcitech.git")
-                    developerConnection.set("scm:git:ssh://github.com/IzzzGoy/Arcitech.git")
-                    url.set("https://github.com/IzzzGoy/Arcitech")
-                }
+        licenses {
+            license {
+                name.set("MIT")
+                url.set("https://opensource.org/licenses/MIT")
             }
         }
-    }
-    repositories {
-        maven {
-            name = "sonatype"
-            setUrl("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-            credentials {
-                username = getExtraString("ossrhUsername")
-                password = getExtraString("ossrhPassword")
+        developers {
+            developer {
+                id.set("FromGoy")
+                name.set("Alexey")
+                email.set("xzadmoror@gmail.com")
             }
         }
-        mavenLocal()
+        scm {
+            url.set("https://github.com/IzzzGoy/Arcitech")
+        }
     }
-}
-
-tasks.withType<AbstractPublishToMaven>().configureEach {
-    dependsOn(tasks.withType<Sign>())
-}
-
-signing {
-    sign(publishing.publications)
 }

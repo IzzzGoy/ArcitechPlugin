@@ -7,6 +7,7 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
+import io.github.izzzgoy.plugin.utils.castType
 
 class TypesGenerator : Generator {
     override fun generate(configSchema: ConfigSchema, packageName: String): List<FileSpec> {

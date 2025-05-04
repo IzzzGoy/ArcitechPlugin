@@ -15,6 +15,7 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
+import io.github.izzzgoy.plugin.utils.castType
 import kotlinx.coroutines.flow.StateFlow
 import java.util.Locale
 import kotlin.coroutines.CoroutineContext
@@ -56,8 +57,8 @@ class ProjectionGenerator : Generator {
                                             ParameterSpec.builder(
                                                 "initialValue",
                                                 configSchema.types.find { it.name == projection.type }?.let {
-                                                    ClassName(packageName, it.name)
-                                                } ?: castType(projection.type)
+                                                    ClassName(packageName, it.name).copy(nullable = projection.nullable)
+                                                } ?: castType(projection.type).copy(nullable = projection.nullable)
                                             ).build()
                                         )
                                     }
@@ -66,14 +67,14 @@ class ProjectionGenerator : Generator {
                         )
                         .superclass(
                             Projection::class.asClassName().parameterizedBy(
-                                castType(projection.type)
+                                castType(projection.type).copy(nullable = projection.nullable)
                             )
                         )
                         .addProperty(
                             PropertySpec.builder(
                                 "flow",
                                 StateFlow::class.asTypeName().parameterizedBy(
-                                    castType(projection.type)
+                                    castType(projection.type).copy(nullable = projection.nullable)
                                 )
                             )
                                 .addModifiers(KModifier.OVERRIDE)
@@ -189,13 +190,13 @@ class ProjectionGenerator : Generator {
                                         ).build()
                                     }
                                 )
-                                .returns(castType(projection.type))
+                                .returns(castType(projection.type).copy(nullable = projection.nullable))
                                 .build()
                         )
                         .addProperty(
                             PropertySpec.builder(
                                 "value",
-                                castType(projection.type)
+                                castType(projection.type).copy(nullable = projection.nullable)
                             )
                                 .getter(
                                     FunSpec.getterBuilder()

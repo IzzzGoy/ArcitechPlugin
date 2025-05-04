@@ -2,8 +2,6 @@ package io.github.izzzgoy.plugin.generator
 
 import com.ndmatrix.parameter.Message
 import com.ndmatrix.parameter.ParameterHolder
-import com.ndmatrix.parameter.PostExecMetadata
-import io.github.izzzgoy.plugin.models.ConfigSchema
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
@@ -15,8 +13,8 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
+import io.github.izzzgoy.plugin.models.ConfigSchema
+import io.github.izzzgoy.plugin.utils.castType
 
 class ParameterGenerator : Generator {
 
@@ -41,8 +39,12 @@ class ParameterGenerator : Generator {
                                                 build.addParameter(
                                                     ParameterSpec.builder(
                                                         paramName,
-                                                        castType(def.type)
-                                                    )
+                                                        castType(def.type).copy(nullable = def.nullable)
+                                                    ).also {
+                                                        if (def.initial != null) {
+                                                            it.defaultValue(def.initial)
+                                                        }
+                                                    }
                                                         .build()
                                                 )
                                             }
@@ -51,7 +53,7 @@ class ParameterGenerator : Generator {
                                 )
                                 .addProperties(
                                     it.value.args?.map { (paramName, def) ->
-                                        PropertySpec.builder(paramName, castType(def.type))
+                                        PropertySpec.builder(paramName, castType(def.type).copy(nullable = def.nullable))
                                             .initializer(paramName)
                                             .build()
                                     } ?: emptyList()
@@ -117,34 +119,6 @@ class ParameterGenerator : Generator {
                                     .build()
                             }
                         )
-                        .addProperty(
-                            PropertySpec.builder(
-                                "_postMetadata",
-                                MutableSharedFlow::class.asTypeName()
-                                    .parameterizedBy(
-                                        PostExecMetadata::class.asTypeName()
-                                            .parameterizedBy(
-                                                ClassName(packageName, "${classname}Intents")
-                                            )
-                                    )
-                            )
-                                .initializer("MutableSharedFlow()")
-                                .build()
-                        )
-                        .addProperty(
-                            PropertySpec.builder(
-                                "postMetadata",
-                                Flow::class.asTypeName()
-                                    .parameterizedBy(
-                                        PostExecMetadata::class.asTypeName()
-                                            .parameterizedBy(
-                                                ClassName(packageName, "${classname}Intents")
-                                            )
-                                    )
-                            ).addModifiers(KModifier.OVERRIDE)
-                                .initializer("_postMetadata")
-                                .build()
-                        )
                         .addFunction(
                             FunSpec.builder("handle")
                                 .addModifiers(KModifier.OVERRIDE, KModifier.SUSPEND)
@@ -186,7 +160,11 @@ class ParameterGenerator : Generator {
                                         .addStatement("}.also {")
                                         .indent()
                                         .addStatement(
-                                            "_postMetadata.emit(PostExecMetadata(e, it, %M[%M.CallMetadataKey]!!.parentId, %M[%M.CallMetadataKey]!!.currentId))",
+                                            "_postMetadata.emit(%M(e, it, %M[%M.CallMetadataKey]!!.parentId, %M[%M.CallMetadataKey]!!.currentId))",
+                                            MemberName(
+                                                "com.ndmatrix.parameter",
+                                                "PostExecMetadata"
+                                            ),
                                             MemberName(
                                                 "kotlin.coroutines",
                                                 "coroutineContext"
